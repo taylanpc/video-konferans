@@ -36,6 +36,7 @@ io.on('connection', (socket) => {
         socket.join(roomName);
         console.log(`Kullanıcı ${socket.id}, odaya katıldı: ${roomName}`);
 
+        // Odaya yeni katılan kullanıcıya, odadaki diğer kullanıcıların sinyalini gönder
         socket.to(roomName).emit('userJoined', socket.id);
     });
 
