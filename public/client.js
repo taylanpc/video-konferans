@@ -9,9 +9,19 @@ const RENDER_URL = 'https://taylancam-app.onrender.com';
 let socket;
 const peerConnections = {}; 
 
+// 🔥 EŞLEME HATASINI ÇÖZMEK İÇİN GENİŞLETİLMİŞ STUN SUNUCU LİSTESİ 🔥
 const iceServers = {
     'iceServers': [
-        { 'urls': 'stun:stun.l.google.com:19302' }
+        // Google'ın STUN sunucuları
+        { 'urls': 'stun:stun.l.google.com:19302' },
+        { 'urls': 'stun:stun1.l.google.com:19302' },
+        { 'urls': 'stun:stun2.l.google.com:19302' },
+        { 'urls': 'stun:stun3.l.google.com:19302' },
+        { 'urls': 'stun:stun4.l.google.com:19302' },
+        
+        // Ek STUN sunucuları
+        { 'urls': 'stun:stun.ekiga.net' },
+        { 'urls': 'stun:stun.voipbuster.com' }
     ]
 };
 
@@ -35,7 +45,7 @@ async function joinMeeting() {
         // Socket.IO bağlantısını HTTPS (WSS) protokolünü kullanarak kur.
         socket = io(RENDER_URL, { 
             transports: ['websocket'],
-            secure: true // Güvenli bağlantıyı zorla
+            secure: true 
         }); 
 
         // Bağlantı hatası yakalama
@@ -135,22 +145,16 @@ function createPeerConnection(userId, isInitiator) {
         peer.addTrack(track, localStream);
     });
 
-    // 2. Uzak akış (diğer kişinin videosu) geldiğinde (ÇOK KRİTİK NOKTA)
+    // 2. Uzak akış (diğer kişinin videosu) geldiğinde
     peer.ontrack = (event) => {
         const remoteStream = event.streams[0];
-        const existingVideoContainer = document.querySelector(`.video-container > #video-${userId}`).parentElement;
+        const existingVideoContainer = document.querySelector(`#video-${userId}`);
         
-        // Eğer video elementi yoksa, oluştur
         if (!existingVideoContainer) {
             addVideoStream(remoteStream, userId, false);
         } else {
-            // Eğer element zaten varsa, sadece akışı güncelle
-            const videoElement = existingVideoContainer.querySelector('video');
-            if (videoElement) {
-                videoElement.srcObject = remoteStream;
-            } else {
-                 addVideoStream(remoteStream, userId, false);
-            }
+            // Element zaten varsa (örneğin ekran paylaşımından sonra), sadece akışı güncelle
+            existingVideoContainer.srcObject = remoteStream;
         }
     };
     
@@ -229,11 +233,9 @@ async function shareScreen() {
             audio: true 
         });
 
-        // 1. Kendi yerel videomuzdaki akışı değiştir
         const localVideoElement = document.getElementById(`video-${socket.id}`).getElementsByTagName('video')[0];
         localVideoElement.srcObject = screenStream;
 
-        // 2. Tüm eşlere yeni ekran akışını gönder
         const videoTrack = screenStream.getVideoTracks()[0];
         for (const userId in peerConnections) {
             const peer = peerConnections[userId];
@@ -243,11 +245,9 @@ async function shareScreen() {
             }
         }
 
-        // 3. Ekran paylaşımı durdurulduğunda kamera akışına geri dön
         videoTrack.onended = async () => {
             console.log("Ekran paylaşımı durduruldu, kameraya geri dönülüyor.");
             
-            // Kamera/Mikrofon akışını tekrar al
             localStream = await navigator.mediaDevices.getUserMedia({
                 video: true,
                 audio: true
@@ -256,7 +256,6 @@ async function shareScreen() {
             const newVideoTrack = localStream.getVideoTracks()[0];
             const newAudioTrack = localStream.getAudioTracks()[0];
 
-            // Tüm eşlere kamera akışını gönder
             for (const userId in peerConnections) {
                 const peer = peerConnections[userId];
                 
@@ -270,7 +269,6 @@ async function shareScreen() {
                 }
             }
 
-            // Kendi yerel videomuzu kamera akışıyla güncelle
             localVideoElement.srcObject = localStream;
         };
 
