@@ -9,19 +9,26 @@ const RENDER_URL = 'https://taylancam-app.onrender.com';
 let socket;
 const peerConnections = {}; 
 
-// 🔥 EŞLEME HATASINI ÇÖZMEK İÇİN GENİŞLETİLMİŞ STUN SUNUCU LİSTESİ 🔥
+// 🔥 TURN SUNUCUSU EKLENDİ (Eşleşme sorununu çözmek için KRİTİK) 🔥
 const iceServers = {
     'iceServers': [
-        // Google'ın STUN sunucuları
+        // ⚠️ ÜCRETSİZ TURN SUNUCUSU (Röle noktası)
+        {
+            urls: "turn:openrelay.metered.ca:443?transport=tcp",
+            username: "8cd9f3e46c7f892c90666795",
+            credential: "88a38b1d9774653a3e6a71e2"
+        },
+        {
+            urls: "turn:openrelay.metered.ca:443?transport=udp",
+            username: "8cd9f3e46c7f892c90666795",
+            credential: "88a38b1d9774653a3e6a71e2"
+        },
+        
+        // GENİŞ STUN SUNUCU LİSTESİ (Yardımcı olması için)
         { 'urls': 'stun:stun.l.google.com:19302' },
         { 'urls': 'stun:stun1.l.google.com:19302' },
         { 'urls': 'stun:stun2.l.google.com:19302' },
-        { 'urls': 'stun:stun3.l.google.com:19302' },
-        { 'urls': 'stun:stun4.l.google.com:19302' },
-        
-        // Ek STUN sunucuları
         { 'urls': 'stun:stun.ekiga.net' },
-        { 'urls': 'stun:stun.voipbuster.com' }
     ]
 };
 
@@ -150,6 +157,7 @@ function createPeerConnection(userId, isInitiator) {
         const remoteStream = event.streams[0];
         const existingVideoContainer = document.querySelector(`#video-${userId}`);
         
+        // Eğer video elementi yoksa, oluştur
         if (!existingVideoContainer) {
             addVideoStream(remoteStream, userId, false);
         } else {
